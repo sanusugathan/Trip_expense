@@ -1,148 +1,130 @@
-import React, { useState } from "react";
-import { Card, CardContent } from "@/components/ui/card";
-import { Button } from "@/components/ui/button";
-import { Input } from "@/components/ui/input";
-import { Label } from "@/components/ui/label";
-import { format } from "date-fns";
+// File: src/App.js
+import React, { useState, useEffect } from 'react';
+import UserScreen from './components/UserScreen';
+import ExpenseScreen from './components/ExpenseScreen';
+import SummaryScreen from './components/SummaryScreen';
 
-export default function TripExpenseSplitter() {
-  const [expenses, setExpenses] = useState([]);
-  const [members, setMembers] = useState(["Alice", "Bob", "Charlie"]);
-  const [newExpense, setNewExpense] = useState({
-    name: "",
-    amount: "",
-    date: "",
-    splitMethod: "equal",
-    splits: {},
-  });
+const LOCAL_STORAGE_KEY = 'trip-expense-tracker';
 
-  const handleAddExpense = () => {
-    if (!newExpense.name || !newExpense.amount || !newExpense.date) return;
-    setExpenses([...expenses, newExpense]);
-    setNewExpense({ name: "", amount: "", date: "", splitMethod: "equal", splits: {} });
+const App = () => {
+  const [screen, setScreen] = useState(0); // 0: Trip selector, 1: Users, 2: Expenses, 3: Summary
+  const [trips, setTrips] = useState({});
+  const [currentTrip, setCurrentTrip] = useState('');
+  const [tripNameInput, setTripNameInput] = useState('');
+
+  // Load trips from localStorage
+  useEffect(() => {
+    const data = localStorage.getItem(LOCAL_STORAGE_KEY);
+    if (data) {
+      setTrips(JSON.parse(data));
+    }
+  }, []);
+
+  // Save trips to localStorage
+  useEffect(() => {
+    localStorage.setItem(LOCAL_STORAGE_KEY, JSON.stringify(trips));
+  }, [trips]);
+
+  const createTrip = () => {
+    const name = tripNameInput.trim();
+    if (!name || trips[name]) return;
+    setTrips({ ...trips, [name]: { users: [], expenses: [] } });
+    setCurrentTrip(name);
+    setScreen(1);
+    setTripNameInput('');
   };
 
-  const calculateBalances = () => {
-    const balance = {};
-    members.forEach(member => (balance[member] = 0));
+  const selectTrip = (name) => {
+    setCurrentTrip(name);
+    setScreen(1);
+  };
 
-    expenses.forEach(exp => {
-      const total = parseFloat(exp.amount);
-      if (exp.splitMethod === "equal") {
-        const share = total / members.length;
-        members.forEach(member => {
-          balance[member] -= share;
-        });
-      } else if (exp.splitMethod === "percentage") {
-        members.forEach(member => {
-          balance[member] -= (total * (exp.splits[member] || 0)) / 100;
-        });
-      } else if (exp.splitMethod === "shares") {
-        const totalShares = Object.values(exp.splits).reduce((a, b) => a + Number(b), 0);
-        members.forEach(member => {
-          const share = ((exp.splits[member] || 0) / totalShares) * total;
-          balance[member] -= share;
-        });
-      } else if (exp.splitMethod === "unequal") {
-        members.forEach(member => {
-          balance[member] -= exp.splits[member] || 0;
-        });
-      }
+  const updateTrip = (updates) => {
+    setTrips({
+      ...trips,
+      [currentTrip]: {
+        ...trips[currentTrip],
+        ...updates,
+      },
     });
-
-    return balance;
   };
 
-  const balances = calculateBalances();
+  if (!currentTrip) {
+    return (
+      <div className="p-6">
+        <h1 className="text-2xl font-bold mb-4">Select or Create Trip</h1>
+        <div className="mb-4">
+          <input
+            placeholder="New Trip Name"
+            value={tripNameInput}
+            onChange={(e) => setTripNameInput(e.target.value)}
+            className="border p-2 mr-2"
+          />
+          <button onClick={createTrip} className="bg-blue-500 text-white p-2 rounded">
+            Create Trip
+          </button>
+        </div>
+
+        <h2 className="text-lg font-semibold mb-2">Existing Trips</h2>
+        <ul className="space-y-2">
+          {Object.keys(trips).map((name) => (
+            <li key={name}>
+              <button onClick={() => selectTrip(name)} className="text-blue-600 underline">
+                {name}
+              </button>
+            </li>
+          ))}
+        </ul>
+      </div>
+    );
+  }
+
+  const trip = trips[currentTrip];
 
   return (
-    <div className="p-4 max-w-3xl mx-auto">
-      <h1 className="text-2xl font-bold mb-4">Trip Expense Splitter</h1>
+    <div className="p-6">
+      <div className="flex gap-4 mb-6 items-center">
+        <h1 className="text-2xl font-bold">Trip: {currentTrip}</h1>
+        <button onClick={() => { setCurrentTrip(''); setScreen(0); }} className="ml-auto text-sm text-gray-600 underline">
+          Switch Trip
+        </button>
+      </div>
+      <div className="flex gap-4 mb-6">
+        <button onClick={() => setScreen(1)} className="bg-gray-200 p-2 rounded">Users</button>
+        <button onClick={() => setScreen(2)} className="bg-gray-200 p-2 rounded">Expenses</button>
+        <button onClick={() => setScreen(3)} className="bg-gray-200 p-2 rounded">Summary</button>
+      </div>
 
-      <Card className="mb-4">
-        <CardContent className="p-4 grid gap-4">
-          <Label>Expense Name</Label>
-          <Input
-            value={newExpense.name}
-            onChange={(e) => setNewExpense({ ...newExpense, name: e.target.value })}
-          />
+      {screen === 1 && (
+        <UserScreen
+          users={trip.users}
+          addUser={(u) => updateTrip({ users: [...trip.users, u] })}
+          removeUser={(email) => updateTrip({ users: trip.users.filter(u => u.email !== email) })}
+        />
+      )}
 
-          <Label>Amount (INR)</Label>
-          <Input
-            type="number"
-            value={newExpense.amount}
-            onChange={(e) => setNewExpense({ ...newExpense, amount: e.target.value })}
-          />
+      {screen === 2 && (
+        <ExpenseScreen
+          users={trip.users}
+          expenses={trip.expenses}
+          addExpense={(e) => updateTrip({ expenses: [...trip.expenses, e] })}
+          updateExpense={(i, e) => {
+            const updated = [...trip.expenses];
+            updated[i] = e;
+            updateTrip({ expenses: updated });
+          }}
+          removeExpense={(i) => updateTrip({ expenses: trip.expenses.filter((_, idx) => idx !== i) })}
+        />
+      )}
 
-          <Label>Date</Label>
-          <Input
-            type="date"
-            value={newExpense.date}
-            onChange={(e) => setNewExpense({ ...newExpense, date: e.target.value })}
-          />
-
-          <Label>Split Method</Label>
-          <select
-            className="border p-2 rounded"
-            value={newExpense.splitMethod}
-            onChange={(e) => setNewExpense({ ...newExpense, splitMethod: e.target.value })}
-          >
-            <option value="equal">Equal</option>
-            <option value="percentage">Percentage</option>
-            <option value="shares">Shares</option>
-            <option value="unequal">Unequal</option>
-          </select>
-
-          {newExpense.splitMethod !== "equal" && (
-            <div className="grid gap-2">
-              {members.map((member) => (
-                <div key={member} className="flex items-center gap-2">
-                  <Label className="w-24">{member}</Label>
-                  <Input
-                    type="number"
-                    value={newExpense.splits[member] || ""}
-                    onChange={(e) =>
-                      setNewExpense({
-                        ...newExpense,
-                        splits: {
-                          ...newExpense.splits,
-                          [member]: parseFloat(e.target.value),
-                        },
-                      })
-                    }
-                  />
-                </div>
-              ))}
-            </div>
-          )}
-
-          <Button onClick={handleAddExpense}>Add Expense</Button>
-        </CardContent>
-      </Card>
-
-      <Card className="mb-4">
-        <CardContent className="p-4">
-          <h2 className="text-xl font-semibold mb-2">Expenses</h2>
-          {expenses.map((exp, idx) => (
-            <div key={idx} className="border-b py-2">
-              <p className="font-medium">{exp.name} - ₹{exp.amount}</p>
-              <p className="text-sm">Date: {format(new Date(exp.date), "dd MMM yyyy")}</p>
-              <p className="text-sm capitalize">Split: {exp.splitMethod}</p>
-            </div>
-          ))}
-        </CardContent>
-      </Card>
-
-      <Card>
-        <CardContent className="p-4">
-          <h2 className="text-xl font-semibold mb-2">Summary</h2>
-          {members.map((member) => (
-            <p key={member}>
-              {member}: ₹{balances[member].toFixed(2)}
-            </p>
-          ))}
-        </CardContent>
-      </Card>
+      {screen === 3 && (
+        <SummaryScreen
+          users={trip.users}
+          expenses={trip.expenses}
+        />
+      )}
     </div>
   );
-}
+};
+
+export default App;
