@@ -3,7 +3,7 @@
 import React, { useEffect, useState } from 'react';
 import { useParams } from 'react-router-dom';
 import { getFirestore, doc, onSnapshot, updateDoc } from 'firebase/firestore';
-import { app } from '../firebase';
+import { app } from '../../firebase';
 
 import ExpenseScreen from '../components/ExpenseScreen';
 import SummaryScreen from '../components/SummaryScreen';
