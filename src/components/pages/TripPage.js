@@ -6,7 +6,7 @@ import { db } from '../firebase';
 import ExpenseScreen from '../components/ExpenseScreen';
 import SummaryScreen from '../components/SummaryScreen';
 import UserScreen from '../components/UserScreen';
-
+//Test
 const TripPage = ({ globalUsers }) => {
   const { tripId } = useParams();
   const [trip, setTrip] = useState(null);
