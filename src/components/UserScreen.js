@@ -1,35 +1,57 @@
-
 // File: src/components/UserScreen.js
 import React, { useState } from 'react';
 
-const UserScreen = ({ users, addUser, removeUser }) => {
-  const [name, setName] = useState('');
-  const [mobile, setMobile] = useState('');
-  const [email, setEmail] = useState('');
+const UserScreen = ({ users, globalUsers, addUser, removeUser }) => {
+  const [selectedEmail, setSelectedEmail] = useState('');
+
+  const availableUsers = globalUsers.filter(
+    (u) => !users.some((existing) => existing.email === u.email)
+  );
 
   const handleAdd = () => {
-    if (!name || !email) return;
-    addUser({ name, mobile, email });
-    setName('');
-    setMobile('');
-    setEmail('');
+    const userToAdd = globalUsers.find((u) => u.email === selectedEmail);
+    if (userToAdd) {
+      addUser(userToAdd);
+      setSelectedEmail('');
+    }
   };
 
   return (
     <div>
-      <h2 className="text-xl font-bold mb-4">Users</h2>
-      <div className="flex flex-col md:flex-row gap-2 mb-4">
-        <input className="border p-2" placeholder="Name" value={name} onChange={(e) => setName(e.target.value)} />
-        <input className="border p-2" placeholder="Mobile" value={mobile} onChange={(e) => setMobile(e.target.value)} />
-        <input className="border p-2" placeholder="Email" value={email} onChange={(e) => setEmail(e.target.value)} />
-        <button onClick={handleAdd} className="bg-blue-500 text-white p-2 rounded">Add</button>
+      <h2 className="text-xl font-semibold mb-4">Manage Users</h2>
+
+      <div className="mb-4 flex gap-2">
+        <select
+          value={selectedEmail}
+          onChange={(e) => setSelectedEmail(e.target.value)}
+          className="border p-2 rounded"
+        >
+          <option value="">Select a user to add</option>
+          {availableUsers.map((u) => (
+            <option key={u.email} value={u.email}>
+              {u.name} ({u.email})
+            </option>
+          ))}
+        </select>
+        <button
+          onClick={handleAdd}
+          disabled={!selectedEmail}
+          className="bg-blue-500 text-white px-4 py-2 rounded disabled:opacity-50"
+        >
+          Add
+        </button>
       </div>
 
-      <ul>
+      <ul className="space-y-2">
         {users.map((u) => (
-          <li key={u.email} className="flex justify-between items-center border-b py-2">
+          <li key={u.email} className="flex justify-between items-center">
             <span>{u.name} ({u.email})</span>
-            <button onClick={() => removeUser(u.email)} className="text-red-600">Remove</button>
+            <button
+              onClick={() => removeUser(u.email)}
+              className="text-sm text-red-600 underline"
+            >
+              Remove
+            </button>
           </li>
         ))}
       </ul>

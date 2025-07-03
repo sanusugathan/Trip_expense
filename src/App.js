@@ -25,10 +25,22 @@ const App = () => {
   const [currentTripId, setCurrentTripId] = useState('');
   const [tripNameInput, setTripNameInput] = useState('');
   const [user, setUser] = useState(null);
+  const [globalUsers, setGlobalUsers] = useState([]);
 
   useEffect(() => {
-    const unsubscribe = onAuthStateChanged(auth, (firebaseUser) => {
+    const unsubscribe = onAuthStateChanged(auth, async (firebaseUser) => {
       setUser(firebaseUser);
+      if (firebaseUser) {
+        const userRef = doc(db, 'users', firebaseUser.uid);
+        const snap = await getDoc(userRef);
+        if (!snap.exists()) {
+          await setDoc(userRef, {
+            uid: firebaseUser.uid,
+            name: firebaseUser.displayName,
+            email: firebaseUser.email,
+          });
+        }
+      }
     });
     return () => unsubscribe();
   }, []);
@@ -44,7 +56,13 @@ const App = () => {
       });
       setTrips(tripData);
     };
+    const fetchGlobalUsers = async () => {
+      const usersSnapshot = await getDocs(collection(db, 'users'));
+      const userList = usersSnapshot.docs.map(doc => doc.data());
+      setGlobalUsers(userList);
+    };
     fetchTrips();
+    fetchGlobalUsers();
 
     const urlTripId = window.location.pathname.replace('/', '');
     if (urlTripId) {
@@ -225,6 +243,8 @@ const App = () => {
 
   if (!trip) return <div className="p-6">Loading trip data...</div>;
 
+  const tripParticipants = globalUsers.filter(u => trip.participants?.includes(u.uid));
+
   return (
     <div className="p-6">
       <div className="flex gap-4 mb-6 items-center">
@@ -246,6 +266,16 @@ const App = () => {
           Sign Out
         </button>
       </div>
+
+      <div className="mb-4">
+        <h2 className="text-lg font-semibold mb-2">Participants</h2>
+        <ul className="list-disc list-inside text-sm text-gray-700">
+          {tripParticipants.map(u => (
+            <li key={u.uid}>{u.name} ({u.email})</li>
+          ))}
+        </ul>
+      </div>
+
       <div className="flex gap-4 mb-6">
         <button onClick={() => setScreen(1)} className="bg-gray-200 p-2 rounded">Users</button>
         <button onClick={() => setScreen(2)} className="bg-gray-200 p-2 rounded">Expenses</button>
@@ -255,6 +285,7 @@ const App = () => {
       {screen === 1 && (
         <UserScreen
           users={trip.users}
+          globalUsers={globalUsers}
           addUser={(u) => updateTrip({ users: [...trip.users, u] })}
           removeUser={(email) => updateTrip({ users: trip.users.filter(u => u.email !== email) })}
         />
