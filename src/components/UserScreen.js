@@ -3,7 +3,7 @@ import React, { useState } from 'react';
 import { doc, setDoc } from 'firebase/firestore';
 import { db } from '../firebase';
 
-const UserScreen = ({ users, globalUsers, addUser, removeUser }) => {
+const UserScreen = ({ users = [], globalUsers = [], addUser = () => {}, removeUser = () => {} }) => {
   const [selectedEmail, setSelectedEmail] = useState('');
 
   const availableUsers = globalUsers.filter(
