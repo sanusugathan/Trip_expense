@@ -1,4 +1,5 @@
 // src/firebase.js
+//test comment
 import { initializeApp } from 'firebase/app';
 import { getAuth } from 'firebase/auth';
 import { getFirestore } from 'firebase/firestore';
