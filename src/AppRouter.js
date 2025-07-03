@@ -6,7 +6,7 @@ import { onAuthStateChanged, signOut, GoogleAuthProvider, signInWithPopup } from
 import { collection, onSnapshot } from 'firebase/firestore';
 import LandingPage from './components/LandingPage';
 import UserScreen from './components/UserScreen';
-import TripPage from './pages/TripPage';
+import TripPage from './components/pages/TripPage';
 
 const AppRouter = () => {
   const [user, setUser] = useState(null);
