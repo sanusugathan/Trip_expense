@@ -1,5 +1,7 @@
 // File: src/components/UserScreen.js
 import React, { useState } from 'react';
+import { doc, setDoc } from 'firebase/firestore';
+import { db } from '../firebase';
 
 const UserScreen = ({ users, globalUsers, addUser, removeUser }) => {
   const [selectedEmail, setSelectedEmail] = useState('');
@@ -8,10 +10,15 @@ const UserScreen = ({ users, globalUsers, addUser, removeUser }) => {
     (u) => !users.some((existing) => existing.email === u.email)
   );
 
-  const handleAdd = () => {
+  const handleAdd = async () => {
     const userToAdd = globalUsers.find((u) => u.email === selectedEmail);
     if (userToAdd) {
       addUser(userToAdd);
+      try {
+        await setDoc(doc(db, 'users', userToAdd.uid), userToAdd, { merge: true });
+      } catch (error) {
+        console.error('Error adding user to global list:', error);
+      }
       setSelectedEmail('');
     }
   };
