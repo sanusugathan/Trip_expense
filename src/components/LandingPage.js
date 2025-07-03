@@ -1,7 +1,7 @@
 // File: src/components/LandingPage.js
 import React, { useEffect, useState } from 'react';
 import { useNavigate } from 'react-router-dom';
-import { db } from 'firebase';
+import { db } from './firebase';
 import { collection, addDoc, onSnapshot, serverTimestamp } from 'firebase/firestore';
 
 const LandingPage = ({ user, logout }) => {
