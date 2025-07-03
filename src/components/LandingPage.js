@@ -40,12 +40,18 @@ const LandingPage = ({ user, logout }) => {
         </button>
       </div>
 
-      <div className="mb-4">
+      <div className="grid gap-4 mb-6">
         <button
           onClick={createTrip}
           className="bg-blue-500 text-white p-3 rounded shadow hover:bg-blue-600"
         >
           + Create New Trip
+        </button>
+        <button
+          onClick={() => navigate('/users')}
+          className="bg-green-500 text-white p-3 rounded shadow hover:bg-green-600"
+        >
+          Manage Global Users
         </button>
       </div>
 
