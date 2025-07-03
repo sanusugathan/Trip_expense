@@ -1,18 +1,26 @@
-// File: src/components/LandingPage.js
 import React, { useEffect, useState } from 'react';
 import { useNavigate } from 'react-router-dom';
-import { db } from '../firebase';
-import { collection, addDoc, onSnapshot, serverTimestamp } from 'firebase/firestore';
+
+// ✅ Modular Firebase imports
+import { getFirestore, collection, addDoc, onSnapshot, serverTimestamp } from 'firebase/firestore';
+import { app } from '../firebase'; // Ensure this is exported in firebase.js
+
+const db = getFirestore(app); // ✅ Construct Firestore from initialized app
 
 const LandingPage = ({ user, logout }) => {
   const navigate = useNavigate();
   const [trips, setTrips] = useState([]);
 
   useEffect(() => {
-    const unsub = onSnapshot(collection(db, 'trips'), (snapshot) => {
-      setTrips(snapshot.docs.map((doc) => ({ id: doc.id, ...doc.data() })));
+    const unsubscribe = onSnapshot(collection(db, 'trips'), (snapshot) => {
+      const tripList = snapshot.docs.map((doc) => ({
+        id: doc.id,
+        ...doc.data(),
+      }));
+      setTrips(tripList);
     });
-    return () => unsub();
+
+    return () => unsubscribe();
   }, []);
 
   const createTrip = async () => {
@@ -28,6 +36,7 @@ const LandingPage = ({ user, logout }) => {
       expenses: [],
       createdAt: serverTimestamp(),
     });
+
     navigate(`/trips/${docRef.id}`);
   };
 

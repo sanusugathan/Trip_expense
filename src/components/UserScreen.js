@@ -1,25 +1,36 @@
-// File: src/components/UserScreen.js
-import React, { useState } from 'react';
-import { doc, setDoc } from 'firebase/firestore';
-import { db } from '../firebase';
+// src/components/UserScreen.js
 
-const UserScreen = ({ users = [], globalUsers = [], addUser = () => {}, removeUser = () => {} }) => {
+import React, { useState } from 'react';
+import { getFirestore, doc, setDoc } from 'firebase/firestore';
+import { app } from '../firebase';
+
+const db = getFirestore(app);
+
+const UserScreen = ({
+  users = [],
+  globalUsers = [],
+  addUser = () => {},
+  removeUser = () => {}
+}) => {
   const [selectedEmail, setSelectedEmail] = useState('');
 
+  // Exclude already-added users from global options
   const availableUsers = globalUsers.filter(
-    (u) => !users.some((existing) => existing.email === u.email)
+    (user) => !users.some((existing) => existing.email === user.email)
   );
 
   const handleAdd = async () => {
     const userToAdd = globalUsers.find((u) => u.email === selectedEmail);
-    if (userToAdd) {
-      addUser(userToAdd);
-      try {
-        await setDoc(doc(db, 'users', userToAdd.uid), userToAdd, { merge: true });
-      } catch (error) {
-        console.error('Error adding user to global list:', error);
-      }
-      setSelectedEmail('');
+    if (!userToAdd) return;
+
+    addUser(userToAdd);
+    setSelectedEmail('');
+
+    try {
+      const userRef = doc(db, 'users', userToAdd.uid);
+      await setDoc(userRef, userToAdd, { merge: true });
+    } catch (err) {
+      console.error('Error saving user to Firestore:', err);
     }
   };
 
@@ -34,12 +45,13 @@ const UserScreen = ({ users = [], globalUsers = [], addUser = () => {}, removeUs
           className="border p-2 rounded"
         >
           <option value="">Select a user to add</option>
-          {availableUsers.map((u) => (
-            <option key={u.email} value={u.email}>
-              {u.name} ({u.email})
+          {availableUsers.map((user) => (
+            <option key={user.email} value={user.email}>
+              {user.name} ({user.email})
             </option>
           ))}
         </select>
+
         <button
           onClick={handleAdd}
           disabled={!selectedEmail}
@@ -50,11 +62,11 @@ const UserScreen = ({ users = [], globalUsers = [], addUser = () => {}, removeUs
       </div>
 
       <ul className="space-y-2">
-        {users.map((u) => (
-          <li key={u.email} className="flex justify-between items-center">
-            <span>{u.name} ({u.email})</span>
+        {users.map((user) => (
+          <li key={user.email} className="flex justify-between items-center">
+            <span>{user.name} ({user.email})</span>
             <button
-              onClick={() => removeUser(u.email)}
+              onClick={() => removeUser(user.email)}
               className="text-sm text-red-600 underline"
             >
               Remove

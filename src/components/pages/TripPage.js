@@ -1,25 +1,34 @@
-// File: src/pages/TripPage.js
+// src/pages/TripPage.js
+
 import React, { useEffect, useState } from 'react';
 import { useParams } from 'react-router-dom';
-import { doc, onSnapshot, updateDoc } from 'firebase/firestore';
-import { db } from '../firebase';
+import { getFirestore, doc, onSnapshot, updateDoc } from 'firebase/firestore';
+import { app } from '../firebase';
+
 import ExpenseScreen from '../components/ExpenseScreen';
 import SummaryScreen from '../components/SummaryScreen';
 import UserScreen from '../components/UserScreen';
-//Test
+
+// Initialize Firestore explicitly using the modular API
+const db = getFirestore(app);
+
 const TripPage = ({ globalUsers }) => {
   const { tripId } = useParams();
   const [trip, setTrip] = useState(null);
   const [screen, setScreen] = useState(1);
 
   useEffect(() => {
-    const unsub = onSnapshot(doc(db, 'trips', tripId), (snap) => {
-      if (snap.exists()) setTrip({ id: snap.id, ...snap.data() });
+    const unsubscribe = onSnapshot(doc(db, 'trips', tripId), (snapshot) => {
+      if (snapshot.exists()) {
+        setTrip({ id: snapshot.id, ...snapshot.data() });
+      }
     });
-    return () => unsub();
+
+    return () => unsubscribe();
   }, [tripId]);
 
   const updateTrip = async (updates) => {
+    if (!trip) return;
     const tripRef = doc(db, 'trips', tripId);
     await updateDoc(tripRef, {
       ...trip,
@@ -45,7 +54,7 @@ const TripPage = ({ globalUsers }) => {
         <UserScreen
           users={trip.users}
           globalUsers={globalUsers}
-          addUser={(u) => updateTrip({ users: [...trip.users, u] })}
+          addUser={(user) => updateTrip({ users: [...trip.users, user] })}
           removeUser={(email) =>
             updateTrip({ users: trip.users.filter((u) => u.email !== email) })
           }
@@ -56,19 +65,21 @@ const TripPage = ({ globalUsers }) => {
         <ExpenseScreen
           users={trip.users}
           expenses={trip.expenses}
-          addExpense={(e) => updateTrip({ expenses: [...trip.expenses, e] })}
-          updateExpense={(i, e) => {
-            const updated = [...trip.expenses];
-            updated[i] = e;
-            updateTrip({ expenses: updated });
+          addExpense={(expense) => updateTrip({ expenses: [...trip.expenses, expense] })}
+          updateExpense={(index, updatedExpense) => {
+            const updatedExpenses = [...trip.expenses];
+            updatedExpenses[index] = updatedExpense;
+            updateTrip({ expenses: updatedExpenses });
           }}
-          removeExpense={(i) =>
-            updateTrip({ expenses: trip.expenses.filter((_, idx) => idx !== i) })
+          removeExpense={(index) =>
+            updateTrip({ expenses: trip.expenses.filter((_, i) => i !== index) })
           }
         />
       )}
 
-      {screen === 3 && <SummaryScreen users={trip.users} expenses={trip.expenses} />}
+      {screen === 3 && (
+        <SummaryScreen users={trip.users} expenses={trip.expenses} />
+      )}
     </div>
   );
 };
